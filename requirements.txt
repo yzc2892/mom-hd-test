@@ -1,0 +1,7 @@
+# Python dependencies for the simulation & figure/Word build of the MoM HD-mean test.
+# Pinned to the versions used to produce the results in the paper (reproducibility).
+# Tested on CPython 3.13.
+numpy==2.5.0
+scipy==1.17.1
+matplotlib==3.10.8
+python-docx==1.2.0

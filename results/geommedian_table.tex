@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering\small
+\caption{Coordinate-wise MoM vs geometric median of means (\citet{minsker2015}) at $\delta=0.3$ ($K=10$, $B=120$, $R=100$). Bootstrap power; size is under $H_0$. The geometric median is more powerful under dependence but costs far more (Weiszfeld iterations inside the bootstrap).}
+\label{tab:gm}
+\begin{tabular}{lllcccc}
+\toprule
+Noise & $n$ & $p$ & Size MoM & Size GeoMed & Power MoM & Power GeoMed \\
+\midrule
+Gaussian & 100 & 200 & 0.058 & 0.108 & 0.975 & 1.000 \\
+t(5) & 100 & 200 & 0.042 & 0.042 & 1.000 & 1.000 \\
+t(3) & 100 & 200 & 0.067 & 0.050 & 1.000 & 1.000 \\
+Log-normal & 100 & 200 & 0.108 & 0.050 & 1.000 & 1.000 \\
+Gaussian & 200 & 1000 & 0.042 & 0.075 & 1.000 & 1.000 \\
+t(3) & 200 & 1000 & 0.058 & 0.050 & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}

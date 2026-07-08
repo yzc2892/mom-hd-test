@@ -1,0 +1,45 @@
+# ---- LaTeX build artifacts ----
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# ---- temp compile logs from verification runs ----
+_*_compile_*.log
+
+# ---- legacy / superseded versions (use manuscript.* instead) ----
+paper.tex
+paper.pdf
+paper.html
+
+# ---- compiled paper outputs (regenerable from source) ----
+manuscript.pdf
+manuscript.docx
+supplementary.pdf
+supplementary.docx
+
+# ---- build helpers / QA scripts not part of the reproducibility claim ----
+resume_sim.py
+finalize_deliverables.sh
+build_paper.py
+html_to_pdf.py
+check_abstract.py
+check_cites.py
+check_xref.py
+validate_tex.py
+verify_bib.py
+verify_final.py
+
+# ---- log files generated inside results/ ----
+results/*.log

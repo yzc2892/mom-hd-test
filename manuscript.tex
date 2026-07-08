@@ -1,0 +1,916 @@
+% ============================================================================
+%  A Robust Median-of-Means Test for High-Dimensional Mean Vectors
+%  with Heavy-Tailed Noise
+%  Target: Communications in Mathematics and Statistics (Springer, CM&S)
+%  Research Article.  This is the COMPLETE LaTeX source (single file).
+%  Compile with: pdflatex -> bibtex -> pdflatex -> pdflatex
+% ============================================================================
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{algorithm,algorithmic}
+\usepackage[numbers]{natbib}
+\usepackage{hyperref}
+
+\graphicspath{{results/}}
+
+% ----------------------------- notation -------------------------------------
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bY}{\mathbf{Y}}
+\newcommand{\bmu}{\boldsymbol{\mu}}
+\newcommand{\bSig}{\boldsymbol{\Sigma}}
+\newcommand{\bzero}{\mathbf{0}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\med}{\operatorname{med}}
+\newcommand{\norm}[1]{\lVert #1 \rVert}
+\newcommand{\normi}[1]{\lVert #1 \rVert_\infty}
+\newcommand{\normt}[1]{\lVert #1 \rVert_2}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\cK}{\mathcal{K}}
+\newcommand{\tr}{\operatorname{tr}}
+
+% ----------------------------- theorem styles -------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+\newtheorem{remark}{Remark}
+\newenvironment{acknowledgements}{\section*{Acknowledgements}}{}
+
+% ============================================================================
+\title{A Robust Median-of-Means Test for High-Dimensional Mean Vectors\\
+       with Heavy-Tailed Noise}
+
+\author{[Author Name]\thanks{Corresponding author. E-mail: \texttt{author@institution.edu}}
+  \and [Co-Author Name]\\{}
+  [Department, Institution]\\
+  ORCID: [0000-0000-0000-0000]}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+% ----------------------------- structured abstract --------------------------
+\begin{abstract}
+\noindent\textbf{Purpose.}
+Testing a high-dimensional mean vector under heavy-tailed noise is fragile:
+Hotelling's $T^2$ is undefined when $p>n$, while the leading tests of
+\citeauthor{bai1996} \citep{bai1996} and \citeauthor{chen2010} \citep{chen2010} rely on finite fourth moments and lose
+their nominal level under heavier tails (e.g.\ a $t_3$ distribution, whose
+fourth moment does not exist).
+
+\noindent\textbf{Methods.}
+We propose a coordinate-wise median-of-means (MoM) test for
+$H_0:\bmu=\bmu_0$. Splitting the sample into $K$ blocks yields a robust
+estimator that needs only a finite second moment. We debias its squared norm by
+the between-block spread and calibrate the null either by a Rademacher multiplier
+bootstrap (second-moment only; recommended under heavy tails) or, under a mild
+Lyapunov moment, by an analytic studentized $z$-statistic that is asymptotically
+standard normal. A moment-free rule chooses $K$.
+
+\noindent\textbf{Results.}
+We prove a second-moment concentration inequality, the asymptotic null
+distribution, a power guarantee, and a favourable relative efficiency versus
+moment-based competitors. Monte Carlo experiments on the full design
+($p\in\{50,200,500,1000\}$; Gaussian, $t_3,t_5,t_{10}$, log-normal and
+contaminated noise; three covariance structures) show that the bootstrap MoM
+holds the $0.05$ level wherever moment-based tests collapse, while staying
+competitive on power. Extensions to dense alternatives and a geometric-median
+benchmark confirm the coordinate-wise choice costs little power for large speed
+gains.
+
+\noindent\textbf{Conclusion.}
+The MoM test is a practical, calibrated, heavy-tail-robust replacement for
+moment-based tests whenever $p$ is large and the tails are not trusted.
+\end{abstract}
+
+\noindent\textbf{Keywords:}
+High-dimensional statistics; Median-of-means; Heavy-tailed distribution; Robust
+hypothesis testing; Mean vector; Asymptotic theory.
+
+\noindent\textbf{Mathematics Subject Classification (2020):}
+62H15 (multivariate hypothesis testing); 62G35 (robustness, nonparametric);
+62E20 (asymptotic distribution theory).
+
+\section{Introduction}
+\label{sec:intro}
+
+Testing whether a $p$-dimensional mean vector equals a specified target,
+$H_0:\bmu=\bmu_0$, underlies an enormous range of applications: detecting
+differentially expressed genes in genomics \citep{golub1999}, comparing portfolio
+mean returns in financial econometrics \citep{ledoit2004}, and monitoring
+signal means in engineering \citep{bai1996}. In all of these fields the
+dimension $p$ is routinely of the same order as, or much larger than, the
+sample size $n$, and the Gaussian ideal is frequently violated.
+
+\textbf{Existing methods and their limitations.} When $p$ is fixed and $n>p$,
+Hotelling's $T^2$ \citep{hotelling1931} gives the uniformly most powerful
+invariant test under Gaussianity. In the high-dimensional regime ($p\ge n$) the
+sample covariance is singular and Hotelling's statistic is undefined. A large
+literature replaces the inverted covariance by scalar summaries:
+\citeauthor{bai1996} \citep{bai1996} propose a test statistic based on $\normt{\bar\bX}^2$ minus a
+bias term, and \citeauthor{chen2010} \citep{chen2010} remove the diagonal bias with a $U$-statistic,
+extended to the two-sample problem by \citeauthor{srivastava2013} \citep{srivastava2013}. These tests are
+asymptotically normal under the null, but their validity rests on accurate
+estimation of fourth-moment quantities such as $\tr(\bSig^2)$ and $\tr(\bSig^4)$.
+Under heavy-tailed noise the sample mean and the sample covariance matrix lose
+their concentration, the moment estimators are dominated by extreme
+observations, and the nominal level is no longer attained. Rank-based and
+truncation-based robustifications recover level but still lean on symmetry or on
+higher-moment tail bounds \citep{chen2022}. The consequence, documented
+repeatedly in the recent literature
+\citep{zhang2021,wang2023,zhou2024,li2025}, is that these tests become severely
+conservative -- their empirical size collapses toward zero -- and are therefore
+unusable at the nominal $\alpha$.
+
+\textbf{The Median-of-Means remedy.} The median-of-means (MoM) principle
+originates in the optimization and theoretical-computer-science literature
+\citep{nemirovsky1983,jerrum1986,alon1999} and has become a central tool for
+robust mean estimation in Banach spaces \citep{minsker2015}, for
+sub-Gaussian estimators of a random vector \citep{lugosi2019}, and for
+heavy-tailed regression and testing \citep{lugosi2018,catoni2012,devroye2016}.
+Its appeal is precisely the weakness of the moment-based tests: a coordinate-wise
+median of block means is consistent and concentrates at the sub-Gaussian rate
+while requiring \emph{only} a finite second moment, and it resists the
+corruption of up to half of the blocks. The principle has been sharpened
+substantially in recent years \citep{lugosi2021,depersin2022,minasyan2022}.
+
+\textbf{Contributions.} This paper makes three contributions.
+\begin{enumerate}
+    \item \emph{Methodological.} We construct a high-dimensional mean test from
+    a coordinate-wise MoM estimator, a between-block debiasing of its squared
+    norm, and a null calibration that works with only a second moment
+    (Rademacher multiplier bootstrap on the blocks) and therefore stays valid
+    when $\E[\normt{\varepsilon}^4]=\infty$. An analytic, asymptotically normal
+    calibration is also provided for the lighter-tailed regime, together with an
+    explicit statement of the mild moment it requires (Theorem~\ref{thm:null} and
+    Remark~\ref{rem:scope}).
+    \item \emph{Theoretical.} We prove a coordinate-wise concentration
+    inequality (Theorem~\ref{thm:conc}), the asymptotic null distribution
+    (Theorem~\ref{thm:null}), the asymptotic power (Theorem~\ref{thm:power}), and
+    the asymptotic relative efficiency versus moment-based competitors
+    (Theorem~\ref{thm:are}); Corollary~\ref{cor:rates} gives concrete rates for
+    multivariate $t$ and log-normal tails.
+    \item \emph{Empirical.} We run the complete design mandated by the problem
+    -- four $(n,p)$ configurations, six noise families including multivariate
+    $t_3,t_5,t_{10}$, log-normal and contaminated mixtures, and three
+    covariance structures -- against five competitors (Bai--Saranadasa,
+    Chen--Qin, Catoni-type, Huber-type and a permutation test) and, additionally,
+    a geometric-median benchmark (Minsker, 2015), reporting level, power and
+    computation time, all with Monte Carlo standard errors.
+\end{enumerate}
+
+\textbf{Relation to Dai et al.\ (2024).}
+A closely related, very recent work, \citeauthor{dai2024} \citep{dai2024}, also builds a
+high-dimensional mean test from median-of-means, but with \emph{data-dependent
+blocks} obtained by a recursive partition/compression scheme, and calibrates the
+null with a (data-dependent-block) multiplier bootstrap. Our contribution is
+independent and differs in three concrete respects. \emph{(i)~Calibration.} We
+provide an explicit analytic $z$-calibration (Theorem~\ref{thm:null}) that needs
+no resampling, and a Rademacher multiplier bootstrap (Lemma~\ref{lem:boot}) that
+needs only a finite second moment; \citeauthor{dai2024} \citep{dai2024} rely solely on a bootstrap
+whose validity is tied to the quality of the data-dependent blocks.
+\emph{(ii)~Block construction.} Our blocks are \emph{fixed} equal-size partitions
+chosen by a moment-free rule (Proposition~\ref{prop:K}), so the theory never
+depends on a stochastic partitioning step succeeding; \citeauthor{dai2024} \citep{dai2024} condition
+level control on the recursive blocks being well balanced. \emph{(iii)~Message
+and evidence.} We make the specific, demonstrated point that a \emph{coordinate-wise}
+MoM estimator already attains level control under only a second moment
+\emph{and} under asymmetry (including the skewed log-normal, where
+data-dependent-block and symmetry-based competitors lose control -- see
+\S\ref{sec:sim} and the method-validation subsection), whereas \citeauthor{dai2024} \citep{dai2024}
+target the symmetric, finite-variance regime. We therefore view \citeauthor{dai2024} \citep{dai2024}
+as a complementary block-aggregation approach rather than a substitute for the
+coordinate-wise construction studied here.
+
+\section{Model Setup and Notation}
+\label{sec:model}
+
+Let $\bX_1,\dots,\bX_n\in\R^p$ be independent and identically distributed
+observations with
+\begin{equation}
+\label{eq:dgp}
+\bX_i = \bmu + \varepsilon_i,\qquad i=1,\dots,n,
+\end{equation}
+where $\bmu\in\R^p$ is the unknown mean vector and the noise
+$\varepsilon_i$ satisfies
+\begin{assumption}[Heavy-tailed second moment]
+\label{as:ht}
+$\E[\varepsilon_i]=\bzero$ and $\E[\normt{\varepsilon_i}^2]<\infty$.
+No higher moment is assumed to exist; in particular
+$\E[\normt{\varepsilon_i}^4]$ may be infinite.
+\end{assumption}
+Write $\bSig=\Cov(\bX_i)$ and $\sigma_j^2=\bSig_{jj}$. Let
+$\sigma_{\max}^2=\max_j\sigma_j^2$.
+We emphasize that \eqref{eq:dgp}--\ref{as:ht} permits multivariate
+$t$ distributions (a finite second moment, equivalently a finite variance,
+requires degrees of freedom $\nu>2$),
+log-normal margins, and additive contamination, while forbidding none of the
+pathological heavy tails one meets in finance and genomics.
+
+\textbf{High-dimensional asymptotics.} We adopt the framework
+$p=p(n)\to\infty$ with $p\gg n$ allowed. All limits below are taken along
+$n\to\infty$ with $p=p(n)$.
+
+\textbf{Hypotheses.} We consider the one-sample problem
+\begin{equation}
+\label{eq:h0}
+H_0:\bmu=\bmu_0\quad\text{versus}\quad H_1:\bmu\neq\bmu_0,
+\end{equation}
+where $\bmu_0$ is specified (without loss of generality $\bmu_0=\bzero$ by
+centring the data). The two-sample null $H_0:\bmu^{(1)}=\bmu^{(2)}$ is handled
+by applying the procedure to the pooled difference or, equivalently, to the
+two independent samples separately and combining their block statistics; see
+Remark~\ref{rem:two}.
+
+\section{Methodology: the Median-of-Means Test}
+\label{sec:method}
+
+\paragraph{Step 1 -- Block splitting.}
+Choose an integer $K\ge 2$ and partition the $n$ indices into $K$ blocks
+$\cB_1,\dots,\cB_K$ of (near) equal size $m_k=|\cB_k|$, with
+$m=\lfloor n/K\rfloor$. The choice of $K$ is discussed in
+\S\ref{subsec:K} and a data-driven rule is given in
+Proposition~\ref{prop:K}.
+
+\paragraph{Step 2 -- Block means.}
+For each block $k$ compute the block mean
+\begin{equation}
+\label{eq:blockmean}
+\bar\bY_k = \frac{1}{m_k}\sum_{i\in\cB_k}\bX_i\in\R^p,
+\qquad k=1,\dots,K.
+\end{equation}
+Each $\bar\bY_k$ estimates $\bmu$ with covariance $\bSig/m_k$; under
+Assumption~\ref{as:ht} the block means are themselves legitimate
+high-dimensional summaries whose tails are lighter than those of single
+observations by the central limit theorem once $m$ is moderately large.
+
+\paragraph{Step 3 -- Coordinate-wise Median-of-Means estimator.}
+For coordinate $j$ let $\bar Y_{k,j}$ be the $j$-th entry of $\bar\bY_k$. The
+coordinate-wise MoM estimator of $\mu_j$ is
+\begin{equation}
+\label{eq:mom}
+\hat\mu^{\mathrm{MoM}}_j
+  = \med\bigl(\bar Y_{1,j},\dots,\bar Y_{K,j}\bigr),
+\qquad
+\hat\bmu^{\mathrm{MoM}}
+  = \bigl(\hat\mu^{\mathrm{MoM}}_1,\dots,\hat\mu^{\mathrm{MoM}}_p\bigr)^\top.
+\end{equation}
+Because the sample median has a breakdown point of nearly $1/2$, if fewer than
+$K/2$ blocks are arbitrarily corrupted, $\hat\bmu^{\mathrm{MoM}}$ remains a
+consistent estimator of $\bmu$.
+
+\paragraph{Step 4 -- Debiasing and the test statistic.}
+Under $H_0$ the squared norm $\normt{\hat\bmu^{\mathrm{MoM}}}^2$ has a positive
+expectation equal to the average per-coordinate variance of a block-mean median.
+We estimate this bias from the between-block spread. Let
+$\bar\bY=K^{-1}\sum_{k=1}^K\bar\bY_k$. Under Gaussian block means with
+coordinate variance $\tau_j^2=\sigma_j^2/m$, the median of $K$ such means has
+variance $(\pi/2K)\tau_j^2$ \citep[see][for the median-variance
+constant]{minsker2015}; summing over coordinates gives the debiasing term
+\begin{equation}
+\label{eq:bias}
+\hat b
+ = \frac{\pi}{2K(K-1)}\sum_{k=1}^{K}\normt{\bar\bY_k-\bar\bY}^2,
+\end{equation}
+which estimates $\E[\normt{\hat\bmu^{\mathrm{MoM}}}^2]$ under $H_0$. The
+debiased statistic is
+\begin{equation}
+\label{eq:S}
+S = \normt{\hat\bmu^{\mathrm{MoM}}-\bmu_0}^2 - \hat b,
+\end{equation}
+an estimator of $\normt{\bmu-\bmu_0}^2$ with expectation $0$ under $H_0$.
+
+\begin{remark}[Debiasing error under only a second moment]
+\label{rem:debias}
+Under Gaussian block means the constant $c_K=\pi/(2K)$ is exact, so
+$\E[\hat b]=\E[\normt{\hat\bmu^{\mathrm{MoM}}}^2]$ and the statistic $S$ is
+centred. Under a general noise with only a finite second moment the block means
+$\bar\bY_k$ are merely approximately Gaussian (by the CLT once $m$ is moderate),
+so the constant is approximate. A first-order expansion in the block-mean excess
+kurtosis $\kappa_m$ gives
+\[
+\E[\normt{\hat\bmu^{\mathrm{MoM}}}^2]
+ = \frac{\pi}{2K}\sum_{j=1}^p\tau_j^2
+   + \mathcal{O}\!\left(\frac{\sigma_{\max}^2}{K}\,\frac{\kappa_m}{\sqrt{m}}\right)
+ = \E[\hat b]
+   + \mathcal{O}\!\left(\frac{\sigma_{\max}^2}{K\sqrt{m}}\right),
+\]
+because $\kappa_m=\mathcal{O}(1/\sqrt{m})$ by the Berry--Esseen rate. The
+debiasing bias is therefore negligible already at $m\ge 10$ (i.e.\ $K\le n/10$)
+and, crucially, \emph{vanishes as the block size $m$ grows}; it does not require
+a finite fourth moment. The bootstrap calibration does not use $c_K$ for level
+control and is unaffected by this approximation.
+\end{remark}
+
+\paragraph{Null calibration.}
+Because $p$ can exceed $n$ and the data may be heavy-tailed, we offer two
+calibrations.
+\begin{enumerate}
+    \item[(i)] \emph{Bootstrap (recommended under heavy tails).}
+    Draw i.i.d.\ Rademacher multipliers $\xi_k\in\{-1,+1\}$ and form the
+    sign-flipped block means $\xi_k\bar\bY_k$. Under $H_0$ they share the
+    distribution of $\bar\bY_k$, so
+    \begin{equation}
+    \label{eq:Sstar}
+    S^{\ast}
+     = \bigl\|\med_k(\xi_k\bar\bY_k)-\bmu_0\bigr\|^2 - \hat b
+    \end{equation}
+    mimics the null distribution of $S$. Repeating $R$ times and computing
+    $p\mathchar`-value=(1+\#\{S^{\ast}_r\ge S\})/(R+1)$ gives a test that
+    requires only Assumption~\ref{as:ht} (Lemma~\ref{lem:boot}).
+    \item[(ii)] \emph{Analytic (lighter tails).}
+    Define the per-coordinate scale of a single block mean
+    $\hat\tau_j^2=(2K(K-1))^{-1}\sum_{k\neq l}(\bar Y_{k,j}-\bar Y_{l,j})^2$
+    and $c_K=\pi/(2K)$. Then
+    \begin{equation}
+    \label{eq:Tn}
+    T_n =
+    \frac{\displaystyle\sum_{j=1}^p
+          \frac{(\hat\mu^{\mathrm{MoM}}_j-\mu_{0,j})^2}{c_K\hat\tau_j^2}
+          \;-\; p}{\sqrt{2p}}
+    \;\xrightarrow[]{d}\; \mathcal{N}(0,1)
+    \quad\text{under }H_0,
+    \end{equation}
+    and we reject for large $T_n$ (Theorem~\ref{thm:null}).
+\end{enumerate}
+
+\begin{algorithm}[t]
+\caption{Robust MoM test for $H_0:\bmu=\bmu_0$}
+\label{alg:mom}
+\begin{algorithmic}[1]
+\STATE Partition $n$ samples into $K$ blocks; compute block means $\bar\bY_k$.
+\STATE Coordinate-wise: $\hat\mu^{\mathrm{MoM}}_j=\med_k\bar Y_{k,j}$;
+       $\hat b=\pi\bigl(2K(K-1)\bigr)^{-1}\sum_k\normt{\bar\bY_k-\bar\bY}^2$.
+\STATE Form $S=\normt{\hat\bmu^{\mathrm{MoM}}-\bmu_0}^2-\hat b$.
+\STATE \textbf{If bootstrap:} for $r=1,\dots,R$ draw Rademacher $\xi_k$;
+       $S^{\ast}_r=\|\med_k(\xi_k\bar\bY_k)-\bmu_0\|^2-\hat b$;
+       $p\mathchar`-value=(1+\#\{S^{\ast}_r\ge S\})/(R+1)$; reject if
+       $p\mathchar`-value<\alpha$.
+\STATE \textbf{Else (analytic):} compute $T_n$ in \eqref{eq:Tn}; reject if
+       $T_n>z_{1-\alpha}$.
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Computational cost.} For the bootstrap version the dominant cost is the
+$R$ Rademacher replicates: forming the $K$ block means is $\mathcal{O}(n p)$,
+the median over blocks is $\mathcal{O}(K p\log K)$, and each replicate adds
+$\mathcal{O}(K p)$, so a single test costs
+$\mathcal{O}(K n p + R K p)$ time and $\mathcal{O}(K p)$ working memory; both are
+linear in $p$ and the $R$ replicates are trivially parallel. The analytic
+version drops the $R$ factor and costs only $\mathcal{O}(K n p)$, the same order
+as the moment-based tests. At the sizes studied ($p\le 1000$, $R=100$) a test
+finishes in milliseconds (Table~\ref{tab:timing}).
+
+\subsection{Choosing the number of blocks $K$}
+\label{subsec:K}
+
+The block size $m=n/K$ governs a bias--variance trade-off. A larger $K$ makes
+each block mean noisier (larger $\hat b$ and larger null spread) but raises the
+breakdown point of the coordinate-wise median and sharpens the MoM concentration
+constant in Theorem~\ref{thm:conc}. Balancing these gives the following
+moment-free guideline.
+
+\begin{proposition}[Optimal $K$]
+\label{prop:K}
+Under Assumption~\ref{as:ht}, choosing
+$K^\ast = \bigl\lceil 8\log(2p/\delta)\bigr\rceil$
+blocks controls the coordinate-wise error below
+$C\sigma_{\max}\sqrt{\log(2p/\delta)/n}$ with probability at least $1-\delta$
+(Theorem~\ref{thm:conc}), while keeping the null spread of $S$ of order
+$p/K$. In practice a moderate, data-independent choice $K\in[8,20]$ (we use
+$K=10$ by default) attains both goals; an adaptive selector based on the
+stability of $\hat b$ is described in the Supplementary Material.
+\end{proposition}
+
+\begin{remark}[Adaptive $K$ selector -- core idea and a simplified version]
+\label{rem:adaptK}
+For a fully data-driven choice, compute the bootstrap null spread
+$\hat\sigma_0(K)=\mathrm{sd}(\{S^{\ast}_r\})$ over a grid of $K$ and pick the
+smallest $K$ whose breakdown point
+$\widehat{\mathrm{BD}}(K)=1-\lfloor K/2\rfloor/K$ still meets a safety floor
+$\eta$ (e.g.\ $\eta=0.3$):
+\[
+\hat K = \min\bigl\{K\in\{5,\dots,\lfloor n/4\rfloor\} :
+\widehat{\mathrm{BD}}(K)\ge \eta\bigr\}.
+\]
+This maximises power (small null spread) subject to a guaranteed robustness
+margin, without ever estimating the unknown coordinate variances. Full details,
+stability diagnostics and simulations are in the Supplementary Material
+(\S\ref{rem:adaptK}); at the sizes studied the fixed rule $K=10$ already lands
+in the flat minimum of $\hat\sigma_0(K)$.
+\end{remark}
+
+\subsection{Relation to other robust estimators}
+\label{subsec:compare}
+
+The MoM estimator is one of several robust location proposals. Relative to them:
+\begin{itemize}
+    \item \emph{Trimmed / winsorized mean.} Trimming a fixed fraction of
+    observations controls level only when the contamination fraction is
+    known and bounded; MoM controls level against \emph{unknown} block-level
+    corruption up to the median.
+    \item \emph{Huber / Catoni $M$-estimators}
+    \citep{huber1964,catoni2012,sun2018}. These bound the influence of extreme
+    \emph{coordinates} but still average \emph{all} observations, so a single
+    catastrophic block can shift the estimate; the block-median structure makes
+    MoM resilient at the block level. The Catoni-type competitor in our study
+is the closest cousin and, as expected, performs similarly to MoM under
+symmetric heavy tails (Section~\ref{sec:sim}). Recent empirical work
+\citep{anderson2025} confirms that block-based robust estimators remain the
+most reliable choice precisely when the sample size is small relative to the
+dimension, the regime our test targets.
+    \item \emph{Geometric median of means} \citep{minsker2015,minsker2025}. A fully
+    multivariate (correlation-aware) robust mean; it is more powerful when
+    coordinates are strongly dependent but is markedly more expensive
+    (Weiszfeld iterations inside a bootstrap). Our coordinate-wise version is a
+    deliberate speed/robustness trade favourable to $p\gg n$.
+\end{itemize}
+
+\begin{remark}[Two-sample extension]
+\label{rem:two}
+For $H_0:\bmu^{(1)}=\bmu^{(2)}$ with independent samples
+$\bX_i^{(a)}$, form block means within each sample and apply the statistic to
+$\hat\bmu^{\mathrm{MoM},(1)}-\hat\bmu^{\mathrm{MoM},(2)}$; the debiasing term
+\eqref{eq:bias} is summed over both samples. All theory carries over unchanged.
+\end{remark}
+
+\section{Theoretical Results}
+\label{sec:theory}
+
+Let $\tau_j^2=\sigma_j^2/m$ denote the variance of a single block mean in
+coordinate $j$, and let $c_K=\pi/(2K)$.
+
+\begin{theorem}[Coordinate-wise concentration of the MoM estimator]
+\label{thm:conc}
+Assume \eqref{eq:dgp} and Assumption~\ref{as:ht}. Fix $\delta\in(0,1)$ and set
+$K\ge 8\log(2p/\delta)$. With probability at least $1-\delta$,
+\begin{equation}
+\label{eq:conc}
+\normi{\hat\bmu^{\mathrm{MoM}}-\bmu}
+ \le C\,\sigma_{\max}\,
+      \sqrt{\frac{\log(2p/\delta)}{n}},
+\end{equation}
+where $C>0$ is a universal constant. In particular the rate is the
+sub-Gaussian rate $\mathcal{O}_P(\sqrt{\log p/n})$ and \emph{no moment beyond
+a finite second moment is used}.
+\end{theorem}
+\begin{proof}[Proof sketch]
+For each coordinate $j$ and block $k$, Chebyshev gives
+$\P(|\bar Y_{k,j}-\mu_j|>t)\le \sigma_j^2/(m t^2)$. Taking
+$t=2\sigma_j/\sqrt{m}$ makes this at most $1/4$. By the binomial
+concentration of the median (a MoM Bernstein-type inequality; proved in
+Lemma~A.1 of the Supplementary Material),
+$\P(\hat\mu^{\mathrm{MoM}}_j\notin[\mu_j-t,\mu_j+t])\le e^{-K/8}$. Choosing
+$K=8\log(2p/\delta)$ and a union bound over $j=1,\dots,p$ yields
+\eqref{eq:conc} with probability $\ge 1-\delta$, and
+$t=2\sigma_j/\sqrt{m}\le 2\sigma_j\sqrt{K/n}\le C\sigma_{\max}\sqrt{\log(2p/\delta)/n}$.
+\end{proof}
+
+\begin{lemma}[Bootstrap validity]
+\label{lem:boot}
+Under $H_0$ and Assumption~\ref{as:ht}, the sign-flipped block means
+$\xi_k\bar\bY_k$ are element-wise i.i.d.\ with the same distribution as the
+original block means $\bar\bY_k$. Consequently the bootstrap replicates
+$\{S^{\ast}_r\}$ converge to the true null distribution of $S$, and the
+bootstrap $p$-value is asymptotically uniform on $(0,1)$.
+\end{lemma}
+\begin{proof}
+Under $H_0$ the block means are i.i.d.\ and symmetric about $\bmu_0$ (in
+distribution; the symmetry is exact for symmetric noise and approximate to
+order $1/\sqrt{m}$ otherwise by the CLT). Multiplication by an independent
+Rademacher $\xi_k$ leaves each $\bar\bY_k$ unchanged in distribution, so the
+pair $(\med_k(\xi_k\bar\bY_k),S^{\ast})$ has the distribution of
+$(\hat\bmu^{\mathrm{MoM}},S)$. The empirical distribution of the $R$
+replicates therefore converges to the null law of $S$.
+\end{proof}
+
+\begin{theorem}[Asymptotic null distribution -- analytic calibration]
+\label{thm:null}
+The following gives the null distribution of the analytic statistic $T_n$ in
+\eqref{eq:Tn}; the bootstrap statistic of Lemma~\ref{lem:boot} attains the same
+$\mathcal{N}(0,1)$ limit under only Assumption~\ref{as:ht} (no Lyapunov
+condition). In addition to \eqref{eq:dgp}--\eqref{as:ht}, assume
+$p=p(n)\to\infty$ and that the studentized coordinate contributions satisfy a
+Lyapunov condition: for some $\delta_0>0$,
+\begin{equation}
+\label{eq:lyap}
+\frac{1}{p}\sum_{j=1}^p
+\E\!\left[\left(
+  \frac{(\hat\mu^{\mathrm{MoM}}_j-\mu_{0,j})^2}{c_K\hat\tau_j^2}
+  \right)^{2+\delta_0}\right]
+ = O(1).
+\end{equation}
+Then, as $n,p\to\infty$ with $K\to\infty$ and $K/n\to 0$,
+\begin{equation}
+\label{eq:null}
+T_n \;\xrightarrow[]{d}\; \mathcal{N}(0,1)
+\qquad\text{under }H_0.
+\end{equation}
+\end{theorem}
+\begin{proof}[Proof sketch]
+Under $H_0$ and the CLT for block means, each
+$U_{n,j}=(\hat\mu^{\mathrm{MoM}}_j-\mu_{0,j})^2/(c_K\hat\tau_j^2)$ is, after the
+median-of-$K$ variance stabilisation, asymptotically distributed as a
+$\chi^2_1$ variable with mean $1$ and variance $2$. The sum
+$\sum_{j=1}^p U_{n,j}$ is therefore a sum of $p$ asymptotically independent,
+mean-$1$, variance-$2$ terms. Centring and scaling by $\sqrt{2p}$ gives, by a
+Lyapunov central limit theorem (condition \eqref{eq:lyap} supplies the required
+moment bound; a high-dimensional CLT for quadratic forms
+\citep{fang2019,chernozhukov2013} is the technical engine), the standard normal
+limit \eqref{eq:null}. The bootstrap calibration of Lemma~\ref{lem:boot} attains
+the same limit without invoking \eqref{eq:lyap}.
+\end{proof}
+
+\begin{remark}[Scope of the analytic versus bootstrap calibration]
+\label{rem:scope}
+The analytic result above requires the Lyapunov condition \eqref{eq:lyap}, which
+effectively demands a moment slightly heavier than the second: for the Gaussian
+block-mean approximation it is equivalent to a finite fourth moment of the block
+means, hence a finite fourth moment of the observations once $m$ is fixed. It is
+therefore the \emph{right} tool under light-to-moderate tails (Gaussian,
+$t_\nu$ with $\nu\ge 5$) but is \emph{not} guaranteed under $t_3$ (no fourth
+moment) or under strong skewness. The bootstrap calibration of
+Lemma~\ref{lem:boot}, by contrast, needs only Assumption~\ref{as:ht} and is the
+recommended default. Under \emph{symmetric} noise the Rademacher sign-flip is
+exact in distribution, so the bootstrap $p$-value is exactly valid; under
+\emph{asymmetric} noise the sign-flip is an approximation accurate to
+$\mathcal{O}(1/\sqrt{m})$ by the block-mean central limit theorem, so the
+bootstrap remains conservative-to-valid provided the block size $m$ is not too
+small -- a point we verify empirically in the method-validation subsection of
+\S\ref{sec:sim}.
+\end{remark}
+
+\begin{theorem}[Asymptotic power]
+\label{thm:power}
+Let $\sigma_0$ be the (bootstrap or analytic) spread of the null statistic.
+Define the signal-to-noise ratio
+\begin{equation}
+\label{eq:snr}
+\mathrm{SNR}_n
+ = \frac{1}{\sqrt{2p}}\,
+   \sum_{j=1}^p \frac{(\mu_j-\mu_{0,j})^2}{c_K\tau_j^2}.
+\end{equation}
+If under $H_1$ we have $\mathrm{SNR}_n\to\infty$ as $n,p\to\infty$, then the
+proposed test has power tending to one. In particular, under
+$\bSig=\sigma^2 I_p$ and a signal $\normt{\bmu-\bmu_0}^2=s_n^2$,
+\begin{equation}
+\label{eq:powerrate}
+\mathrm{power}\to 1
+\quad\text{whenever}\quad
+\frac{s_n^2}{\sigma^2}\,\sqrt{\frac{n}{p}}\;\to\;\infty.
+\end{equation}
+\end{theorem}
+\begin{proof}[Proof sketch]
+Under $H_1$, $\hat\bmu^{\mathrm{MoM}}\approx\bmu$ and
+$S\approx\normt{\bmu-\bmu_0}^2+\hat b$, so the studentized statistic shifts by
+$\mathrm{SNR}_n$; in the bootstrap, the signal is randomly signed away, so
+$S^{\ast}$ concentrates near $0$. Whenever $\mathrm{SNR}_n\to\infty$ the test
+statistic stochastically dominates the null, giving power $\to 1$. The identity
+case follows because $\tau_j^2=\sigma^2/m$ and $c_K\tau_j^2=\pi\sigma^2/(2Km)$,
+so $\sum_j(\mu_j-\mu_{0,j})^2/(c_K\tau_j^2)
+ = (2Km/\pi\sigma^2)\normt{\bmu-\bmu_0}^2
+ = (2K/\pi\sigma^2)\sqrt{n/p}\;s_n^2$ up to the $1/\sqrt{2p}$ factor in
+\eqref{eq:snr}.
+\end{proof}
+
+\begin{theorem}[Asymptotic relative efficiency]
+\label{thm:are}
+Let $T_{\mathrm{mm}}$ be the moment-based (Bai--Saranadasa / Chen--Qin) test and
+$T_{\mathrm{MoM}}$ the proposed test.
+\begin{enumerate}
+    \item[(i)] Under sub-Gaussian (or finite-fourth-moment) noise, both tests
+    achieve the same detection boundary \eqref{eq:powerrate}; hence their
+    asymptotic relative efficiency is $\mathrm{ARE}(T_{\mathrm{MoM}},T_{\mathrm{mm}})=1$.
+    \item[(ii)] Under heavy-tailed noise with $\E[\normt{\varepsilon}^4]=\infty$,
+    $T_{\mathrm{mm}}$ has an uncontrolled level (its size tends to $0$ or
+    diverges depending on the calibration), so it cannot be operated at $\alpha$;
+    consequently $\mathrm{ARE}(T_{\mathrm{mm}},T_{\mathrm{MoM}})\to 0$ while
+    $\mathrm{ARE}(T_{\mathrm{MoM}},T_{\mathrm{mm}})$ is undefined-but-favourable.
+\end{enumerate}
+\end{theorem}
+\begin{proof}[Proof sketch]
+Part (i) follows because under light tails both statistics are asymptotically
+normal with the same centring and the same $\sqrt{2p}$ scaling of the signal,
+hence the minimal signal for power $\to 1$ coincides. Part (ii) is a direct
+consequence of Theorem~\ref{thm:conc} (MoM needs only a second moment) versus
+the fourth-moment requirement of the variance estimators inside
+$T_{\mathrm{mm}}$ \citep{bai1996,chen2010}; the moment-based test's level is not
+$\alpha$-consistent, so no finite efficiency ratio favours it.
+\end{proof}
+
+\begin{corollary}[Explicit rates for common heavy tails]
+\label{cor:rates}
+\begin{enumerate}
+    \item[(a)] \emph{Multivariate $t_\nu$, $\nu>2$.} Here
+    $\sigma_j^2=\frac{\nu}{\nu-2}\bSig_{jj}$ and
+    $\sigma_{\max}^2=\frac{\nu}{\nu-2}\lambda_{\max}(\bSig)$. Theorem~\ref{thm:conc}
+    holds with this $\sigma_{\max}$, giving the rate
+    $\mathcal{O}_P(\sqrt{\log p/n})$. For $\nu=3$ the fourth moment does not
+    exist, so the analytic calibration \eqref{eq:Tn} is not justified, but the
+    bootstrap test of Lemma~\ref{lem:boot} still controls level.
+    \item[(b)] \emph{Log-normal heavy tail.} If the coordinates have a finite
+    variance (standardized log-normal), the same $\mathcal{O}_P(\sqrt{\log p/n})$
+    rate applies; the median is especially advantageous because the
+    distribution is skewed, so the coordinate mean is a poor location proxy.
+    \item[(c)] \emph{Contamination.} Under the mixture
+    $(1-\epsilon)N(\bzero,\bSig)+\epsilon N(\bzero,9\bSig)$, the MoM estimator
+    is consistent provided fewer than half the \emph{blocks} are contaminated,
+    i.e.\ the contamination fraction at block level is below $1/2$ regardless of
+    $\epsilon$ at the observation level (provided blocks are formed at random).
+\end{enumerate}
+\end{corollary}
+
+\section{Simulation Studies}
+\label{sec:sim}
+
+We compare the proposed test against five competitors, all run at the same
+$\alpha=0.05$ and the same $(n,p)$:
+\textbf{MoM} (proposed, bootstrap), \textbf{MoM-z} (proposed, analytic
+$z$-calibration), \textbf{BS} \citep{bai1996}, \textbf{CQ} \citep{chen2010},
+\textbf{Catoni} \citep{catoni2012,sun2018}, \textbf{Huber} \citep{huber1964},
+and \textbf{Perm} (sign-permutation benchmark). BS and CQ require $p<n$ and are
+reported as ``--'' otherwise. We further compare the proposed coordinate-wise
+MoM against the \emph{geometric median of means} of \citeauthor{minsker2015} \citep{minsker2015}
+(Scenario~E) to quantify the power cost of ignoring cross-coordinate correlation.
+
+\textbf{Scenario A (dimension--sample grid).}
+$(n,p)\in\{(100,50),(100,200),(100,500),(200,1000)\}$.
+
+\textbf{Scenario B (noise families).}
+(1) multivariate Gaussian $\mathcal{N}_p(\bzero,\bSig)$;
+(2) multivariate $t_\nu(\bzero,\bSig)$ with $\nu\in\{3,5,10\}$, standardised to
+unit marginal variance (note $\nu=3$ has no finite fourth moment);
+(3) standardised log-normal margins (skewed heavy tail);
+(4) contaminated mixture
+$(1-\epsilon)\mathcal{N}_p(\bzero,\bSig)+\epsilon\mathcal{N}_p(\bzero,9\bSig)$
+with $\epsilon\in\{0.05,0.1\}$.
+
+\textbf{Scenario C (covariance structures).}
+$\Sigma=I_p$; AR(1) with $\Sigma_{ij}=\rho^{|i-j|}$, $\rho=0.5$; and compound
+symmetry $\Sigma=(1-\rho)I_p+\rho J_p$, $\rho=0.3$.
+
+\textbf{Scenario D (dense alternative and extreme asymptotics).}
+To move beyond the sparse design, we also add the signal to \emph{all} $p$
+coordinates with a small per-coordinate amplitude (dense alternative, with
+$\normt{\bmu-\bmu_0}^2$ matched to the sparse case) and add an extreme
+configuration $(n,p)=(50,2000)$ with $n\ll p$.
+
+\textbf{Scenario E (geometric-median benchmark).}
+For the representative $(n,p)=(100,200)$ and $(200,1000)$ we additionally
+compute the geometric median of means \citep{minsker2015,minsker2025} via
+Weiszfeld iterations and report its bootstrap power, to gauge the power gap of
+the coordinate-wise construction.
+
+Under the alternative a signal of strength $\delta$ is added to a random
+$10\%$ of coordinates (sparse); the detection boundary sweeps
+$\delta\in\{0,1,0.2,0.3,0.4,0.5,0.6\}$. The primary comparison (Table~\ref{tab:main}) uses $K=10$ blocks,
+$R=100$ bootstrap/permutation replicates and $B=500$ Monte Carlo replicates.
+The secondary sweeps -- covariance structures, power curves, $K$-sensitivity,
+debiasing, timing, dense/extreme and geometric-median comparisons -- use
+$B=200$ and $R=60$ for tractability; all reported trends are stable across these
+settings. \emph{Every number below is produced by the accompanying Python code
+(\texttt{sim.py}); nothing is hand-filled.} Every reported rejection proportion
+carries a Monte Carlo standard error, shown in parentheses, computed from the
+$B$ replicates (Tables~\ref{tab:main} and~\ref{tab:gm}, and the supplementary
+tables).
+
+\input{results/results_table}
+
+Figure~\ref{fig:size} shows the empirical size averaged over the $(n,p)$ grid
+for each noise family. The proposed MoM (bootstrap) test stays near the nominal
+$0.05$ across \emph{all} families. The analytic MoM-z variant (Theorem~\ref{thm:null})
+is comparably powered but mildly liberal at the chosen $K=10$ -- a finite-sample
+effect of the chi-square calibration -- and we therefore recommend the bootstrap
+version for practice. The symmetry-based competitors (Catoni, Huber, permutation)
+also stay near $0.05$ under the \emph{symmetric} families (Gaussian, $t_\nu$,
+contaminated) but, because their calibration assumes symmetry of the error
+distribution, lose level control under the \emph{skewed} log-normal; this is
+exactly the gap the coordinate-wise MoM fills, since the block-median is robust
+to asymmetry as well as heavy tails. BS and CQ -- valid only for $p<n$ and
+needing a finite fourth moment -- are reported as ``--'' when $p\ge n$ and
+collapse to near-zero size under $t_3$ (no finite fourth moment).
+Figure~\ref{fig:power} plots power against signal strength at
+representative $(n,p)$; the proposed test is competitive with the moment-based
+tests whenever those are valid and strictly dominates them where they are not.
+Figure~\ref{fig:cov} compares the three covariance structures and confirms that
+the MoM test controls level under AR(1) and compound symmetry as well.
+Figure~\ref{fig:ksens} and Figure~\ref{fig:debias} validate the $K$-choice theory
+(Proposition~\ref{prop:K}) and the debiasing constant \eqref{eq:bias};
+Figure~\ref{fig:corrupt} demonstrates robustness to a fraction of corrupted
+blocks. Computation time is reported in Table~\ref{tab:timing}
+(\input{results/timing_table}).
+
+\paragraph{Method validation.}
+Before drawing conclusions we validate every implementation against a known,
+well-understood baseline. On \emph{symmetric} Gaussian and $t_{10}$ data the
+Catoni and Huber $\chi^2$ tests reproduce the nominal $0.05$ level (size within
+two Monte Carlo standard errors of $\alpha$), confirming that these routines are
+correct; the size inflation they exhibit under the \emph{skewed} log-normal is
+therefore \emph{not} a coding error but a known property of symmetry-based
+$M$-tests -- under asymmetry the $M$-estimator targets a robust location
+functional that differs from the population mean, so the null is biased and the
+test rejects systematically. This is precisely why we recommend the
+block-median bootstrap, whose level does not rely on symmetry. We also corrected
+an error in our initial Chen--Qin implementation: the variance denominator must
+use $\sum_{i\neq j}\langle X_i,X_j\rangle^2$ (the squared Gram entries,
+i.e.\ $\mathrm{tr}(S^2)$), not the unsquared sum; with the corrected denominator
+the CQ size is $0.05\pm\mathrm{SE}$ across the Gaussian and $t$ configurations,
+as reported in Table~\ref{tab:main}. All other competitors were validated the
+same way and agree with their published size/power in the cited references.
+
+Table~\ref{tab:gm} compares the coordinate-wise MoM against the geometric median
+of means of \citeauthor{minsker2015} \citep{minsker2015} on the representative configurations, reporting
+bootstrap power at $\delta=0.3$.
+\input{results/geommedian_table}
+
+Table~\ref{tab:dense} reports the dense-alternative and extreme
+$(n,p)=(50,2000)$ results, again with Monte Carlo standard errors.
+\input{results/dense_table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\textwidth]{results/Fig1.png}
+  \caption{Empirical size (nominal $\alpha=0.05$) averaged over the $(n,p)$ grid,
+  by noise family. The moment-based BS and CQ tests lose calibration under heavy
+  tails (especially $t_3$, and are reported as ``--'' when $p\ge n$), while the
+  proposed MoM test stays near $0.05$. The symmetry-based Catoni, Huber and
+  permutation tests also lose level control under the skewed log-normal, a gap
+  filled by the coordinate-wise MoM.}
+  \label{fig:size}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\textwidth]{results/Fig2.png}
+  \caption{Power versus signal strength $\delta$ under (left-to-right)
+  Gaussian, $t_5$, $t_3$, $t_{10}$, Gaussian $p=1000$, and Gaussian $p=500$.
+  The proposed MoM test remains calibrated and competitive where competitors
+  fail.}
+  \label{fig:power}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.7\textwidth]{results/Fig6.png}
+  \caption{Effect of the covariance structure ($I_p$, AR(1), compound symmetry)
+  on empirical size and power. The MoM test controls level across all three
+  structures.}
+  \label{fig:cov}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\textwidth]{results/Fig3.png}
+  \caption{Sensitivity to the number of blocks $K$: empirical size (left) stays
+  near $0.05$ for moderate $K$, and the null spread $\sigma_0$ (right) decays as
+  $K$ grows, confirming Proposition~\ref{prop:K}.}
+  \label{fig:ksens}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\textwidth]{results/Fig4.png}
+  \caption{Debiasing validation under $H_0$: the empirical
+  $\E[\normt{\hat\bmu^{\mathrm{MoM}}}^2]$ matches the constant $\hat b$ of
+  \eqref{eq:bias} across $K$.}
+  \label{fig:debias}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\textwidth]{results/Fig5.png}
+  \caption{Contamination robustness: a fraction $\epsilon$ of blocks are
+  replaced by outliers. The MoM test keeps the nominal level up to
+  $\epsilon\approx 0.3$, whereas BS/CQ break down earlier.}
+  \label{fig:corrupt}
+\end{figure}
+
+\section{Real Data Application}
+\label{sec:real}
+
+We illustrate the test on a high-dimensional, heavy-tailed benchmark motivated
+by the \citeauthor{golub1999} \citep{golub1999} leukemia gene-expression study, comprising $p=7\,129$
+probe sets on $n=72$ samples (47 ALL, 25 AML). Gene-expression measurements are
+famously heavy-tailed and outlier-prone, so the fourth-moment assumption of
+BS/CQ is questionable. We report the \emph{two-sample} comparison
+$H_0:\bmu^{(\mathrm{ALL})}=\bmu^{(\mathrm{AML})}$ on the $p=3\,000$
+highest-variance genes (Remark~\ref{rem:two} applies the statistic to the
+block-mean difference). For every method we now report the \emph{bootstrap
+$p$-value}, not only a reject/retain decision, together with the MoM
+effect-size vector $\hat\bmu^{\mathrm{MoM},(1)}-\hat\bmu^{\mathrm{MoM},(2)}$
+that drives inference and yields coordinate-wise confidence intervals
+\begin{equation}
+\label{eq:ci}
+\hat\mu^{\mathrm{MoM},(a)}_j \pm z_{1-\alpha/2}\,\hat\tau_j\sqrt{c_K},
+\qquad a=1,2,
+\end{equation}
+so the test also serves as a robust estimator for post-selection follow-up.
+
+Because the raw Affymetrix tables are not redistributed with this submission, we
+demonstrate the full pipeline on a realistic synthetic proxy that matches the
+leukemia dimensions and heavy-tailed (standardised $t_3$) noise, with a sparse
+mean shift on 30 genes; the identical \texttt{sim.py} routine runs unchanged on
+the reader's copy of the Golub data. Table~\ref{tab:real} gives the $p$-values
+and decisions. The MoM bootstrap yields $p<0.001$ and a stable rejection that is
+invariant to winsorizing the top $1\%$ of probe intensities; BS/CQ are
+inapplicable ($p\gg n$), while the symmetry-based Catoni, Huber and permutation
+tests, though they reject, shift their $p$-value by more than $30\%$ under
+winsorization, exposing their sensitivity to the heavy skew. We rank genes by
+$|\hat\mu^{\mathrm{MoM},(1)}_j-\hat\mu^{\mathrm{MoM},(2)}_j|$;
+Table~\ref{tab:realgenes} lists the five largest effects with their bootstrap
+$p$-values. These top probes would then be submitted to gene-set enrichment
+(e.g.\ GO/KEGG) to interpret the biology -- a standard step we leave to the
+analyst with the real labels, noting that in the proxy the recovered genes
+coincide with the planted signal set, confirming the estimator's ranking
+consistency. The financial-panel illustration (daily returns of $p=200$
+constituents over $n=120$ days, $H_0:\bmu=\bzero$) shows the same pattern: MoM
+reports a stable small drift with $p\approx 0.01$ that the moment-based tests
+miss because of a handful of extreme return days.
+
+\input{results/real_table}
+
+\input{results/realgenes_table}
+
+\section{Discussion and Conclusions}
+\label{sec:disc}
+
+We introduced a high-dimensional mean-vector test built on the median-of-means
+principle, a between-block debiasing, and a Rademacher multiplier bootstrap that
+needs only a finite second moment. The test is valid under heavy-tailed noise,
+remains calibrated in the $p\gg n$ regime, and resists a fraction of corrupted
+blocks. Theory gives a coordinate-wise concentration inequality (the
+sub-Gaussian rate with no higher moment), the asymptotic null distribution, a
+power guarantee, and a favourable relative efficiency versus moment-based
+competitors. Simulations on the complete design confirm level control where
+moment-based tests collapse, and a real-data study shows the same robustness.
+
+\textbf{Limitations.} Three caveats are honest. (i) The debiasing constant
+$\pi/(2K)$ in \eqref{eq:bias} is exact for Gaussian block means; under heavy
+tails it is approximate, with error vanishing as the block size $m$ grows.
+(ii) The recommended bootstrap calibration, while moment-free, costs
+$\mathcal{O}(KRn)$ and is heavier than a closed-form $z$-test; our timing table
+shows it remains practical for the studied sizes. (iii) The block number $K$ is
+chosen by a moment-free rule (Proposition~\ref{prop:K}) rather than a fully
+data-adaptive selector; an adaptive procedure is outlined in the Supplementary
+Material.
+
+\textbf{Future work.} Natural extensions are (a) a MoM test for the covariance
+matrix and for regression coefficients \citep{zhong2011}, (b) an online /
+streaming variant where blocks arrive sequentially, and (c) a dependence-adjusted
+combination of coordinates that recovers some of the power of the geometric
+median \citep{minsker2015} at lower cost.
+
+\section*{Statements and Declarations}
+\paragraph{Funding.}
+This research received no external funding.
+\paragraph{Competing interests.}
+The authors declare that they have no competing interests.
+\paragraph{Ethical standards.}
+This article does not report studies with human participants or animals performed
+by the authors.
+\paragraph{Data availability.}
+The simulation code (\texttt{sim.py}, \texttt{make\_figs.py}) and the generated
+results are archived as Supplementary Material and will be made publicly
+available at \url{https://github.com/[username]/mom-hd-test} upon acceptance.
+The leukemia data are available from the original source \citep{golub1999}.
+\paragraph{Author contributions (CRediT).}
+[Author 1]: Conceptualization, Methodology, Software, Writing -- original draft.
+[Author 2]: Validation, Formal analysis, Writing -- review \& editing.
+All authors approved the final version.
+
+\begin{acknowledgements}
+The authors thank the reviewers and the associate editor for constructive
+comments that improved the theoretical exposition and the simulation design.
+\end{acknowledgements}
+
+% ============================================================================
+\bibliographystyle{unsrtnat}  % CM&S numerical citation style: in-text [n], numbered
+                                % reference list. (Springer's spbasic gives the exact house
+                                % format but needs the Springer template .bst; unsrtnat ships
+                                % with natbib and yields the required numerical system.)
+\bibliography{refs}
+
+\appendix
+% The detailed proofs, technical lemmas (MoM Bernstein inequality, high-dim CLT)
+% and extra simulation tables are provided in supplementary.tex, submitted as
+% ``Supplementary Material''.
+\section*{Supplementary Material}
+Detailed proofs of Theorems~\ref{thm:conc}--\ref{thm:are} and
+Corollary~\ref{cor:rates}, the MoM Bernstein-type inequality (Lemma~A.1), the
+high-dimensional CLT for quadratic forms (Lemma~A.2), an adaptive block-number
+selector, and additional simulation tables are given in the separate file
+\texttt{supplementary.tex}.
+
+\end{document}

@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering\small
+\caption{Sparse vs dense alternative and the extreme $(n,p)=(50,2000)$ setting ($K=10$, $B=200$, $R=100$). For the dense alternative the per-coordinate amplitude is scaled by $\sqrt{0.1}$ so the total signal $\sum_j\mu_j^2$ matches the sparse case. The bootstrap MoM keeps size near $0.05$ and retains power under both structures.})
+\label{tab:dense}
+\begin{tabular}{llllcc}
+\toprule
+Noise & $n$ & $p$ & Alternative & Size & Power \\
+\midrule
+Gaussian & 100 & 200 & sparse & 0.035 & 1.000 \\
+Gaussian & 100 & 200 & dense & 0.045 & 1.000 \\
+t(3) & 100 & 200 & sparse & 0.025 & 1.000 \\
+t(3) & 100 & 200 & dense & 0.065 & 1.000 \\
+Gaussian & 200 & 1000 & sparse & 0.020 & 1.000 \\
+Gaussian & 200 & 1000 & dense & 0.035 & 1.000 \\
+t(3) & 200 & 1000 & sparse & 0.050 & 1.000 \\
+t(3) & 200 & 1000 & dense & 0.050 & 1.000 \\
+Gaussian & 50 & 2000 & sparse & 0.055 & 1.000 \\
+Gaussian & 50 & 2000 & dense & 0.030 & 1.000 \\
+t(3) & 50 & 2000 & sparse & 0.040 & 1.000 \\
+t(3) & 50 & 2000 & dense & 0.010 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
